@@ -523,6 +523,51 @@ def add_counter(service_id):
 
     return redirect(url_for("manage_services"))
 
+# --------------------------------------------------
+# ADMIN: DELETE SERVICE
+# --------------------------------------------------
+
+@app.route("/admin/delete-service/<int:service_id>", methods=["POST"])
+@admin_required
+def delete_service(service_id):
+
+    service = db.session.get(Service, service_id)
+
+    if not service:
+        flash("Service not found.", "danger")
+        return redirect(url_for("manage_services"))
+
+    service_name = service.name
+
+    active_tokens = QueueToken.query.filter(
+        QueueToken.service_id == service.id,
+        QueueToken.status.in_(["Waiting", "Serving"])
+    ).count()
+
+    if active_tokens:
+        flash(
+            "This service still has waiting or serving tokens. "
+            "Complete or cancel them first.",
+            "warning"
+        )
+        return redirect(url_for("manage_services"))
+
+    try:
+        # Remove child records first, then the service itself
+        QueueToken.query.filter_by(service_id=service.id).delete()
+        Counter.query.filter_by(service_id=service.id).delete()
+        db.session.delete(service)
+        db.session.commit()
+
+        flash(f'Service "{service_name}" deleted successfully.', "success")
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Service deletion failed")
+        flash("Unable to delete this service. Please try again.", "danger")
+
+    return redirect(url_for("manage_services"))
+
 
 # --------------------------------------------------
 # ADMIN: CALL NEXT TOKEN

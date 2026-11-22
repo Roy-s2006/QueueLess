@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Manage Services | QueueLess{% endblock %}
@@ -172,6 +171,20 @@
                 </form>
 
                 {% endif %}
+
+                <!-- DELETE SERVICE -->
+
+                <hr>
+
+                <form method="POST"
+                      action="{{ url_for('delete_service', service_id=service.id) }}"
+                      onsubmit="return confirm('Are you sure you want to delete this service? Its counters and old token history will also be deleted. This cannot be undone.');">
+
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-2"></i>Delete Service
+                    </button>
+
+                </form>
 
             </div>
 
