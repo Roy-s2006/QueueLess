@@ -207,26 +207,25 @@ def generate_token(service_id):
         return redirect(url_for("token_details", token_id=existing_token.id))
 
     try:
-        # Lock the service row during token-number allocation.
-        # SQLite serializes writes, helping prevent duplicate numbers.
-        db.session.execute(
+        # Lock the service row and re-read its latest values, so two
+        # people can never receive the same token number.
+        locked_service = db.session.execute(
             select(Service)
             .where(Service.id == service.id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         ).scalar_one()
 
-        service = db.session.get(Service, service_id)
-
-        token_number = service.next_token_number
+        token_number = locked_service.next_token_number
 
         token = QueueToken(
             token_number=token_number,
             user_id=current_user.id,
-            service_id=service.id,
+            service_id=locked_service.id,
             status="Waiting"
         )
 
-        service.next_token_number += 1
+        locked_service.next_token_number += 1
 
         db.session.add(token)
         db.session.commit()
@@ -239,7 +238,6 @@ def generate_token(service_id):
         app.logger.exception("Token generation failed")
         flash("Unable to generate your token. Please try again.", "danger")
         return redirect(url_for("user_dashboard"))
-
 
 # --------------------------------------------------
 # TOKEN DETAILS
