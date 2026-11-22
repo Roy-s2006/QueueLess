@@ -1,0 +1,330 @@
+
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | QueueLess{% endblock %}
+
+{% block content %}
+
+<div class="container py-5" id="admin-dashboard"
+     data-api-url="{{ url_for('admin_dashboard_api') }}">
+
+    <!-- HEADER -->
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="page-heading">Admin Dashboard</h2>
+            <p class="text-muted mb-0">
+                Welcome, {{ current_user.name }}. Manage your queues here.
+            </p>
+            <small class="text-muted" id="dashboard-update-status">
+                <i class="bi bi-arrow-repeat me-1"></i>Live updates enabled
+            </small>
+        </div>
+
+        <a href="{{ url_for('manage_services') }}" class="btn btn-primary">
+            <i class="bi bi-gear me-2"></i>Manage Services
+        </a>
+    </div>
+
+
+    <!-- STATISTICS -->
+
+    <div class="row g-3 mb-5">
+
+        <div class="col-6 col-lg-3">
+            <div class="stat-card h-100">
+                <i class="bi bi-ticket-perforated stat-icon"></i>
+                <h2 id="stat-total">{{ total_tokens }}</h2>
+                <p>Total Tokens</p>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="stat-card h-100">
+                <i class="bi bi-hourglass-split stat-icon"></i>
+                <h2 id="stat-waiting">{{ waiting_tokens }}</h2>
+                <p>Waiting</p>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="stat-card h-100">
+                <i class="bi bi-person-check stat-icon"></i>
+                <h2 id="stat-serving">{{ serving_tokens }}</h2>
+                <p>Currently Serving</p>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="stat-card h-100">
+                <i class="bi bi-check-circle stat-icon"></i>
+                <h2 id="stat-completed">{{ completed_tokens }}</h2>
+                <p>Completed</p>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- COUNTER MANAGEMENT -->
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold">Active Counters</h4>
+
+        <a href="{{ url_for('manage_services') }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add Counter
+        </a>
+    </div>
+
+    <div class="row g-3 mb-5" id="counter-container">
+
+        {% for counter in counters %}
+
+        {% set current = namespace(token=None) %}
+
+        {% for t in counter.tokens %}
+            {% if t.status == 'Serving' %}
+                {% set current.token = t %}
+            {% endif %}
+        {% endfor %}
+
+        <div class="col-md-6 col-lg-4">
+
+            <div class="dashboard-card h-100">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">{{ counter.name }}</h5>
+                    <span class="badge bg-success">Active</span>
+                </div>
+
+                <p class="text-muted small mb-2">
+                    Service: {{ counter.service.name }}
+                </p>
+
+                <hr>
+
+                {% if current.token %}
+
+                    <p class="text-muted mb-1">Currently Serving</p>
+
+                    <h2 class="text-primary fw-bold">
+                        #{{ current.token.token_number }}
+                    </h2>
+
+                    <p class="small text-muted">
+                        Customer: {{ current.token.user.name }}
+                    </p>
+
+                    <form method="POST"
+                          action="{{ url_for('complete_token', token_id=current.token.id) }}"
+                          class="mb-2">
+
+                        <button class="btn btn-success w-100" type="submit">
+                            <i class="bi bi-check-circle me-2"></i>Complete Token
+                        </button>
+
+                    </form>
+
+                    <form method="POST"
+                          action="{{ url_for('skip_token', token_id=current.token.id) }}"
+                          onsubmit="return confirm('Skip this serving token?')">
+
+                        <button class="btn btn-outline-danger w-100" type="submit">
+                            Skip Token
+                        </button>
+
+                    </form>
+
+                {% else %}
+
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox display-5 text-muted"></i>
+                        <p class="text-muted mt-2">No active token</p>
+                    </div>
+
+                    <form method="POST"
+                          action="{{ url_for('call_next', counter_id=counter.id) }}">
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-megaphone me-2"></i>Call Next Token
+                        </button>
+
+                    </form>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        {% else %}
+
+        <div class="col-12">
+            <div class="custom-card text-center">
+                <i class="bi bi-shop display-5 text-muted"></i>
+                <h5 class="mt-3">No counters available</h5>
+                <p class="text-muted">
+                    Create a service and add your first counter.
+                </p>
+                <a href="{{ url_for('manage_services') }}"
+                   class="btn btn-primary">
+                    Create Counter
+                </a>
+            </div>
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- WAITING QUEUE -->
+
+    <div class="dashboard-card mb-5">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Waiting Queue</h4>
+            <span class="badge bg-warning text-dark" id="waiting-queue-count">
+                {{ waiting_tokens }} Waiting
+            </span>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Customer</th>
+                        <th>Service</th>
+                        <th>Joined At</th>
+                    </tr>
+                </thead>
+
+                <tbody id="waiting-queue-body">
+
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">
+                            Loading waiting queue...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- RECENT QUEUE ACTIVITY -->
+
+    <div class="dashboard-card">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Recent Queue Activity</h4>
+            <span class="badge bg-primary">Latest 100</span>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Customer</th>
+                        <th>Service</th>
+                        <th>Counter</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="recent-activity-body">
+
+                    {% for token in tokens %}
+
+                    <tr>
+
+                        <td class="fw-bold text-primary">
+                            #{{ token.token_number }}
+                        </td>
+
+                        <td>{{ token.user.name }}</td>
+
+                        <td>{{ token.service.name }}</td>
+
+                        <td>{{ token.counter.name if token.counter else '-' }}</td>
+
+                        <td>
+                            {{ token.created_at.strftime('%d %b %Y') }}
+                        </td>
+
+                        <td>
+
+                            {% if token.status == 'Waiting' %}
+                                <span class="badge bg-warning text-dark">Waiting</span>
+
+                            {% elif token.status == 'Serving' %}
+                                <span class="badge bg-primary">Serving</span>
+
+                            {% elif token.status == 'Completed' %}
+                                <span class="badge bg-success">Completed</span>
+
+                            {% else %}
+                                <span class="badge bg-secondary">Cancelled</span>
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if token.status in ['Waiting', 'Serving'] %}
+
+                                <form method="POST"
+                                      action="{{ url_for('skip_token', token_id=token.id) }}"
+                                      onsubmit="return confirm('Cancel this token?')">
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger">
+                                        Skip
+                                    </button>
+
+                                </form>
+
+                            {% else %}
+
+                                <span class="text-muted small">-</span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            No queue activity yet.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

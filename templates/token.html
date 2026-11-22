@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Token #{{ token.token_number }} | QueueLess{% endblock %}
+
+{% block content %}
+
+<div class="container py-5" id="live-token-page" data-token-id="{{ token.id }}">
+
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Your Digital Queue Token</h2>
+        <p class="text-muted">Track your queue progress in real time.</p>
+    </div>
+
+    <div class="token-card">
+
+        <div class="service-icon mx-auto">
+            <i class="bi bi-ticket-perforated-fill"></i>
+        </div>
+
+        <h5 class="text-muted mt-3">{{ token.service.name }}</h5>
+
+        <p class="text-muted mb-0">Your Token Number</p>
+
+        <div class="token-number">
+            #{{ token.token_number }}
+        </div>
+
+        {% if token.status == 'Waiting' %}
+            <span id="token-status" class="status-badge bg-warning text-dark">Waiting</span>
+        {% elif token.status == 'Serving' %}
+            <span id="token-status" class="status-badge bg-primary text-white">Now Serving You</span>
+        {% elif token.status == 'Completed' %}
+            <span id="token-status" class="status-badge bg-success text-white">Completed</span>
+        {% else %}
+            <span id="token-status" class="status-badge bg-secondary text-white">Cancelled</span>
+        {% endif %}
+
+        <hr class="my-4">
+
+        <div class="row g-3">
+
+            <div class="col-6">
+                <h3 id="people-ahead" class="fw-bold text-primary">
+                    {% if token.status == 'Waiting' %}
+                        {{ waiting_ahead }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h3>
+                <small class="text-muted">People Ahead</small>
+            </div>
+
+            <div class="col-6">
+                <h3 class="fw-bold text-primary">
+                    <span id="estimated-wait">
+                        {% if token.status == 'Waiting' %}
+                            {{ estimated_wait }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </span>
+                    <small class="fs-6">min</small>
+                </h3>
+                <small class="text-muted">Estimated Wait</small>
+            </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <div class="text-start">
+
+            <p>
+                <strong>Currently Serving:</strong>
+                <span id="current-serving">
+                    {% if current_serving %}
+                        #{{ current_serving.token_number }}
+                    {% else %}
+                        No token currently serving
+                    {% endif %}
+                </span>
+            </p>
+
+            <p>
+                <strong>Generated On:</strong>
+                {{ token.created_at.strftime('%d %B %Y, %I:%M %p') }}
+            </p>
+
+            <p>
+                <strong>Counter:</strong>
+                <span id="token-counter">
+                    {{ token.counter.name if token.counter else 'Not assigned yet' }}
+                </span>
+            </p>
+
+        </div>
+
+        <form id="cancel-token-form"
+              method="POST"
+              action="{{ url_for('cancel_token', token_id=token.id) }}"
+              class="cancel-form mt-4"
+              {% if token.status != 'Waiting' %}hidden{% endif %}>
+
+            <button type="submit" class="btn btn-outline-danger w-100">
+                Cancel My Token
+            </button>
+
+        </form>
+
+        <p id="live-update-note" class="small text-muted mt-3 mb-0" aria-live="polite">
+            Live updates are enabled. This page checks for changes every 5 seconds.
+        </p>
+
+        <a href="{{ url_for('user_dashboard') }}"
+           class="btn btn-primary w-100 mt-3">
+            Back to Dashboard
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+
+{% extends "base.html" %}
+
+{% block title %}Login | QueueLess{% endblock %}
+
+{% block content %}
+
+<div class="auth-wrapper">
+
+    <div class="auth-card">
+
+        <div class="text-center mb-4">
+
+            <div class="service-icon mx-auto">
+                <i class="bi bi-box-arrow-in-right"></i>
+            </div>
+
+            <h3 class="fw-bold">Welcome Back!</h3>
+
+            <p class="text-muted">
+                Login to continue to QueueLess.
+            </p>
+
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}">
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Email Address</label>
+
+                <input type="email"
+                       name="email"
+                       class="form-control"
+                       placeholder="Enter your email"
+                       required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Password</label>
+
+                <input type="password"
+                       name="password"
+                       class="form-control"
+                       placeholder="Enter your password"
+                       required>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Login <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+
+        </form>
+
+        <div class="text-center mt-4">
+            <p class="text-muted mb-0">
+                Don't have an account?
+                <a href="{{ url_for('register') }}"
+                   class="fw-semibold text-decoration-none">
+                    Register
+                </a>
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
